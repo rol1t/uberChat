@@ -1,0 +1,35 @@
+#onlineUsers {
+  background-color: darkturquoise;
+  border: 1px dashed black;
+  width: 25%;
+  overflow: hidden;
+  margin: 10px;
+}
+
+#messages {
+  width: 75%;
+  height: 100%;
+  background-color: aquamarine;
+  float: left;
+  overflow:auto;
+}
+
+#chatUsers {
+  width: 25%;
+  height: 100%;
+  background-color: aqua;
+  float: right;
+}
+
+#chatspace {
+  width: 100%;
+  height: 500px;
+  float: left;
+  clear: both;
+}
+
+#inputForm {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}

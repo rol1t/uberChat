@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>SignalR Chat</title>
+    <link type="text/css" rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="loginDiv">
+        <input type="text" id="login" />
+        <input type="button" id="registerBtn" value="Войти" />
+    </div>
+    <div id="chatSelector">
+        <input id="globalChat" type="button" value="Global chat" />
+        <input id="flood" type="button" value="Flood" />
+    </div>
+    <br />
+    <h2 id="chatName"></h2>
+    <div id="chatroom"></div>
+    <div id="onlineUsers">
+        <h3>Пользователи онлайн</h3>
+        <p id="userList"></p>
+    </div>
+    <div id="chatspace">
+        <div id="messages"></div>
+        <div id="chatUsers"></div>
+    </div>
+    <div id="inputForm">
+        <input type="text" id="message" />
+        <input type="button" id="sendBtn" value="Отправить" />
+    </div>
+    <script src="js/@microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        let chat1 = {};
+        const hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/chat")
+            .build();
+
+
+
+        hubConnection.on("UserConnected", function (user) {
+            console.log(user);
+            document.getElementById("userList").innerHTML = user;
+        });
+        document.getElementById("registerBtn").addEventListener("click", (e) => {
+            hubConnection.invoke("Connect", { Name: document.getElementById("login").value }).catch((reason)=> console.log(reason));
+        });
+
+        document.getElementById("globalChat").addEventListener("click", (e) => {
+            hubConnection.invoke("ConnectToChat", 1);
+        });
+        document.getElementById("flood").addEventListener("click", (e) => {
+            hubConnection.invoke("ConnectToChat", 2);
+        });
+
+        document.getElementById("sendBtn").addEventListener("click", (e) => {
+            hubConnection.invoke("SendMessage", document.getElementById("message").value);
+        });
+
+        hubConnection.on("ConnectToChat", (userChat) => {
+            chat1 = userChat;
+            loadChat(chat1);
+        });
+
+        hubConnection.on("UpdateChat", (userChat) => {
+            chat1 = userChat;
+            loadChat(userChat);
+        });
+
+        function loadChat(chat) {
+            document.getElementById("messages").innerHTML = "";
+            document.getElementById("chatName").innerHTML = chat.name;
+            chat.messages.forEach(element => {
+                let msgs = document.getElementById("messages").firstChild;
+                let elem = document.createElement("p");
+                elem.innerHTML += element.sender + ": " + element.content;
+                document.getElementById("messages").insertBefore(elem, msgs);
+            });
+
+            document.getElementById("chatUsers").innerHTML = "";
+            chat.connectedUsers.forEach(element => {
+                let usrs = document.getElementById("chatUsers").firstChild;
+                let elem = document.createElement("p");
+                elem.innerHTML += element.userName;
+                document.getElementById("charUsers").insertBefore(elem, usrs);
+            });
+
+        }
+        hubConnection.on("closed", () => { console.log("dskjflkdsajflkj"); debugger; }
+        );
+
+        hubConnection.start();
+    </script>
+</body>
+
+</html>
