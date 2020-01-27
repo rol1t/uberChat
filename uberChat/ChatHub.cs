@@ -11,65 +11,30 @@ namespace uberChat
     public class ChatHub: Hub
     {
         static public List<User> OnlineUsers { get; set; } = new List<User>();
-        static public List<Chat> Chats { get; set; } = new List<Chat>() { 
-            new Chat { ChatId = 1, Name = "Global Chat", Messages = 
-                new List<Message> { 
-                    new Message { Sender = "server", Content = "init message" },
-                    new Message { Sender = "server", Content = "init message" }
-                } 
-            },
-            new Chat { ChatId = 2, Name = "Flood", Messages =
-                new List<Message> {
-                    new Message { Sender = "server", Content = "init flood" },
-                    new Message { Sender = "server", Content = "init flood" }
-                }
-            }
-        }; 
 
         public async Task SendMessage(string message)
         {
             var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
-            var chat = Chats.FirstOrDefault(ch => ch.ChatId == user.ChatId);
-            chat.Messages.Add(new Message { Sender = user.UserName, Content = message });
-            foreach (var item in chat.ConnectedUsers)
-            {
-                await Clients.Client(item.Id).SendAsync("UpdateChat", chat);
-            }
-
+            await Clients.Group(user.CurrentGroup).SendAsync("ReciveMessage", user.UserName, message);
         }
 
         public async Task Connect(UserViewModel user)
         {
             var newUser = new User { Id = Context.ConnectionId, UserName = user.Name };
-            if(OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId) != null)
+            if (OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId) != null)
             {
                 var old = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
                 old.UserName = user.Name;
                 await Clients.All.SendAsync("UserConnected", GetOnlineUsers());
-            }else
+            } else
             {
                 OnlineUsers.Add(newUser);
                 await Clients.All.SendAsync("UserConnected", GetOnlineUsers());
             }
-            var chat = Chats.FirstOrDefault(cht => cht.Name == "Global Chat");
-            newUser.ChatId = chat.ChatId;
-            chat.ConnectedUsers.Add(newUser); //бага тута
-            //await Clients.Caller.SendAsync("ConnectToChat2", new { newUser.CurrentChat.Messages, Users = new[] { new User { UserName = "biba" } } });
-            //var costilniyChat = new Chat {
-            //    ConnectedUsers = newUser.CurrentChat.ConnectedUsers.Select(usr => new User
-            //    {
-            //        UserName = usr.UserName,
-            //        MessageBox = newUser.MessageBox,
-            //        Id = newUser.Id,
-            //        CurrentChat = null
-            //    }).ToList(),
-            //    ChatId = newUser.CurrentChat.ChatId,
-            //    Messages = newUser.CurrentChat.Messages,
-            //    Name = newUser.CurrentChat.Name
-            //};
-            await Clients.Caller.SendAsync("ConnectToChat", chat);
-
-
+            await Groups.AddToGroupAsync(Context.ConnectionId, "global");
+            newUser.CurrentGroup = "global";
+            var group = Clients.Group("global");
+            await group.SendAsync("Notify", $"{newUser.UserName} connected to group global");
         }
 
         private string GetOnlineUsers()
@@ -82,22 +47,17 @@ namespace uberChat
             return users;
         }
 
-        public async Task ConnectToChat(int chatId)
+        public async Task ConnectToGroup(string groupName)
         {
-            var user = OnlineUsers.FirstOrDefault(usr => usr.Id == usr.Id);
-            if (user.ChatId.HasValue)
+            var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
+            if (user.CurrentGroup != null)
             {
-                var chattmp = Chats.FirstOrDefault(ch => ch.ChatId == user.ChatId);
-                chattmp.ConnectedUsers.Remove(user);
-                user.ChatId = null;
+                await Groups.RemoveFromGroupAsync(user.Id, user.CurrentGroup);
+                await Clients.Group(user.CurrentGroup).SendAsync("Notify", user.UserName + " disconected");
             }
-            var chat = Chats.FirstOrDefault(chat => chat.ChatId == chatId);
-            chat.ConnectedUsers.Add(user);
-            user.ChatId = chat == null? 1: chat.ChatId;
-            if (chat != null)
-            {
-                await Clients.Caller.SendAsync("ConnectToChat", chat);
-            }
+            user.CurrentGroup = groupName;
+            await Groups.AddToGroupAsync(user.Id, groupName);
+            await Clients.Groups(groupName).SendAsync("Notify", $"{user.UserName} connected to group {groupName}");
         }
 
         public async Task SendPrivateMessage(string reciver, string message)
@@ -108,6 +68,7 @@ namespace uberChat
             {
                 var client = Clients.Client(user.Id);
                 await client.SendAsync("PrivateMessage", reciver, message);
+                
             }
             catch (Exception ex)
             {
@@ -124,16 +85,10 @@ namespace uberChat
             {
                 return null;
             }
-            var chat = Chats.FirstOrDefault(ch => ch.ChatId == disconectedUser.ChatId);
-            if (disconectedUser != null)
+            else
             {
-                chat.ConnectedUsers.Remove(disconectedUser);
+                Clients.Group(disconectedUser.CurrentGroup).SendAsync("Notify", disconectedUser.UserName + " disconected");
             }
-            foreach (var item in chat.ConnectedUsers)
-            {
-                Clients.Client(item.Id).SendAsync("UpdateChat", chat);
-            }
-            Clients.All.SendAsync("UserConnected", GetOnlineUsers());
             return base.OnDisconnectedAsync(exception);
         }
        

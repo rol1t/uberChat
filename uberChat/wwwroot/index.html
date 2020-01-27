@@ -10,11 +10,11 @@
 <body>
     <div id="loginDiv">
         <input type="text" id="login" />
-        <input type="button" id="registerBtn" value="Войти" />
+        <input type="button" id="registerBtn" value="Войти в глобальную группу" />
     </div>
     <div id="chatSelector">
-        <input id="globalChat" type="button" value="Global chat" />
-        <input id="flood" type="button" value="Flood" />
+        <input type="text" id="groupNameBox" placeholder="groupName" />
+        <input type="button" id="selectGroupBtn" value="Войти в произвольную группу" />
     </div>
     <br />
     <h2 id="chatName"></h2>
@@ -46,22 +46,41 @@
             .withUrl("/chat")
             .build();
 
+        function displayMessage(message, isHighlated = false, color = "black") {
+            let elem = document.createElement("p");
+            elem.style.color = color;
+            let firstChild = document.getElementById("messages").firstChild;
+            if (isHighlated) {
+                message = `!!! ${String(message).toUpperCase()} !!!`;
+            } else {
+                elem.value = message;
+            }
+            elem.innerHTML = message;
+            document.getElementById("messages").insertBefore(elem, firstChild);
+        }
 
+        document.getElementById("selectGroupBtn").addEventListener("click", (e) => {
+            hubConnection.invoke("ConnectToGroup", document.getElementById("groupNameBox").value);
+        });
 
         hubConnection.on("UserConnected", function (user) {
             console.log(user);
             document.getElementById("userList").innerHTML = user;
         });
+
+        hubConnection.on("ReciveMessage", (userName, message) => {
+            displayMessage(userName + ": " + message);
+        });
+
+        hubConnection.on("Notify", (message) => {
+            displayMessage(message, true, "red");
+        });
+
         document.getElementById("registerBtn").addEventListener("click", (e) => {
             hubConnection.invoke("Connect", { Name: document.getElementById("login").value }).catch((reason) => console.log(reason));
         });
 
-        document.getElementById("globalChat").addEventListener("click", (e) => {
-            hubConnection.invoke("ConnectToChat", 1);
-        });
-        document.getElementById("flood").addEventListener("click", (e) => {
-            hubConnection.invoke("ConnectToChat", 2);
-        });
+
         hubConnection.on("ConnectToChat2", (chat) => {
             console.log(chat);
         });
