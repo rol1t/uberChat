@@ -1,17 +1,17 @@
 #onlineUsers {
   background-color: darkturquoise;
   border: 1px dashed black;
-  width: 25%;
+  width: 24.7%;
+  height: 100%;
   overflow: hidden;
-  margin: 10px;
+  float: left;
 }
 
 #messages {
-  width: 75%;
+  width: 50%;
   height: 100%;
   background-color: aquamarine;
   float: left;
-  overflow:auto;
 }
 
 #chatUsers {
@@ -29,7 +29,6 @@
 }
 
 #inputForm {
-  display: flex;
-  width: 100%;
-  align-items: center;
+  width: 50%;
+  height: 10%;
 }

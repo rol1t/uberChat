@@ -4,9 +4,12 @@
   "libraries": [
     {
       "library": "@microsoft/signalr@3.1.0",
-      "destination": "wwwroot/js/@microsoft/signalr/",
+      "destination": "wwwroot/js/signalr/",
       "files": [
-        "dist/browser/signalr.min.js"
+        "dist/browser/signalr.js",
+        "dist/browser/signalr.js.map",
+        "dist/browser/signalr.min.js",
+        "dist/browser/signalr.min.js.map"
       ]
     }
   ]

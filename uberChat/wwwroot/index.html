@@ -19,19 +19,27 @@
     <br />
     <h2 id="chatName"></h2>
     <div id="chatroom"></div>
-    <div id="onlineUsers">
-        <h3>Пользователи онлайн</h3>
-        <p id="userList"></p>
-    </div>
+
     <div id="chatspace">
+        <div id="onlineUsers">
+            <h3>Пользователи онлайн</h3>
+            <p id="userList"></p>
+        </div>
         <div id="messages"></div>
         <div id="chatUsers"></div>
     </div>
+    <br>
     <div id="inputForm">
         <input type="text" id="message" />
         <input type="button" id="sendBtn" value="Отправить" />
     </div>
-    <script src="js/@microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <br>
+    <div id="privateForm">
+        <input type="text" id="privateMessage" />
+        <input type="text" id="reciver" placeholder="id#name (-124#rolit)" />
+        <input type="button" id="sendBtnPrivate" value="Отправить" />
+    </div>
+    <script src="js/signalr/dist/browser/signalr.js"></script>
     <script>
         let chat1 = {};
         const hubConnection = new signalR.HubConnectionBuilder()
@@ -45,7 +53,7 @@
             document.getElementById("userList").innerHTML = user;
         });
         document.getElementById("registerBtn").addEventListener("click", (e) => {
-            hubConnection.invoke("Connect", { Name: document.getElementById("login").value }).catch((reason)=> console.log(reason));
+            hubConnection.invoke("Connect", { Name: document.getElementById("login").value }).catch((reason) => console.log(reason));
         });
 
         document.getElementById("globalChat").addEventListener("click", (e) => {
@@ -54,11 +62,26 @@
         document.getElementById("flood").addEventListener("click", (e) => {
             hubConnection.invoke("ConnectToChat", 2);
         });
+        hubConnection.on("ConnectToChat2", (chat) => {
+            console.log(chat);
+        });
 
         document.getElementById("sendBtn").addEventListener("click", (e) => {
             hubConnection.invoke("SendMessage", document.getElementById("message").value);
         });
 
+        document.getElementById("sendBtnPrivate").addEventListener("click", (e) => {
+            let privateMessage = document.getElementById("privateMessage").value;
+            let reciver = document.getElementById("reciver").value;
+            hubConnection.invoke("SendPrivateMessage", reciver, privateMessage)
+        });
+        hubConnection.on("PrivateMessage", (reciver, message) => {
+            let firstChild = document.getElementById("messages").firstChild;
+            let elem = document.createElement("p");
+            elem.innerHTML = reciver + ": " + message;
+            elem.style.color = "#ff1482";
+            document.getElementById("messages").insertBefore(elem, firstChild);
+        });
         hubConnection.on("ConnectToChat", (userChat) => {
             chat1 = userChat;
             loadChat(chat1);
@@ -84,7 +107,7 @@
                 let usrs = document.getElementById("chatUsers").firstChild;
                 let elem = document.createElement("p");
                 elem.innerHTML += element.userName;
-                document.getElementById("charUsers").insertBefore(elem, usrs);
+                document.getElementById("chatUsers").insertBefore(elem, usrs);
             });
 
         }

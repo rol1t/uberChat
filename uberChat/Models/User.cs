@@ -10,7 +10,7 @@ namespace uberChat.Models
     {
         public string Id { get; set; }
         public string UserName { get; set; }
-        public Chat CurrentChat { get; set; } = null;
+        public int? ChatId { get; set; }
         public List<Message> MessageBox { get; set; } = new List<Message>();
     }
 }
