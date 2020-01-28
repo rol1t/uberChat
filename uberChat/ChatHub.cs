@@ -15,17 +15,6 @@ namespace uberChat
         public async Task SendMessage(string message)
         {
             var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
-            if (!Messages.Any(msg => msg.GroupName == user.CurrentGroup))
-            {
-                Messages.Add(new Message
-                {
-                    Content = $"chat start here ({user.CurrentGroup})!",
-                    GroupName = user.CurrentGroup,
-                    Sender = "server",
-                    Id = 0
-                });
-
-            }
             Messages.Add(new Message
             {
                 GroupName = user.CurrentGroup,
@@ -65,6 +54,45 @@ namespace uberChat
         public async Task ConnectToGroup(string groupName)
         {
             var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
+            user.CurrentGroup = groupName;
+            if (!Messages.Any(msg => msg.GroupName == user.CurrentGroup))
+            {
+                int id = 0;
+                Messages.Add(new Message
+                {
+                    Content = $"chat start here ({user.CurrentGroup})!",
+                    GroupName = user.CurrentGroup,
+                    Sender = "server",
+                    Id = id++
+                });
+                Messages.Add(new Message
+                {
+                    Id = id++,
+                    Content = $"пересчет работяг из ({user.CurrentGroup})!",
+                    GroupName = user.CurrentGroup,
+                    Sender = "server",
+
+                });
+                for (int i = 1; i <= 500; i++)
+                {
+                    Messages.Add(new Message
+                    {
+                        Id = id++,
+                        Content = $"{i}!",
+                        GroupName = user.CurrentGroup,
+                        Sender = "server",
+
+                    });
+                }
+                Messages.Add(new Message
+                {
+                    Id = id++,
+                    Content = $"пересчет работяг из ({user.CurrentGroup}) окончен!",
+                    GroupName = user.CurrentGroup,
+                    Sender = "server",
+
+                });
+            }
             if (user.CurrentGroup != null)
             {
                 await Groups.RemoveFromGroupAsync(user.Id, user.CurrentGroup);
@@ -72,7 +100,9 @@ namespace uberChat
             }
             user.CurrentGroup = groupName;
             await Groups.AddToGroupAsync(user.Id, groupName);
-            var messages = Messages.Where(msg => msg.GroupName == groupName).TakeLast(10).ToList();
+            var messages = Messages.Where(msg => msg.GroupName == groupName)
+                .TakeLast(10)
+                .ToList();
             await Clients.Caller.SendAsync("LoadMessages", messages, (messages.Count() > 0 ? messages.Min(msg => msg.Id): 0));
             await Clients.Groups(groupName).SendAsync("Notify", $"{user.UserName} connected to group {groupName}");
         }
