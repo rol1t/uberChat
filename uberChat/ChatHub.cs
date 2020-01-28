@@ -10,6 +10,7 @@ namespace uberChat
 {
     public class ChatHub: Hub
     {
+        static int MAX_LOAD_MESSAGE = 50;
         static public List<User> OnlineUsers { get; set; } = new List<User>();
         static public List<Message> Messages { get; set; } = new List<Message>();
         public async Task SendMessage(string message)
@@ -101,7 +102,7 @@ namespace uberChat
             user.CurrentGroup = groupName;
             await Groups.AddToGroupAsync(user.Id, groupName);
             var messages = Messages.Where(msg => msg.GroupName == groupName)
-                .TakeLast(10)
+                .TakeLast(MAX_LOAD_MESSAGE)
                 .ToList();
             await Clients.Caller.SendAsync("LoadMessages", messages, (messages.Count() > 0 ? messages.Min(msg => msg.Id): 0));
             await Clients.Groups(groupName).SendAsync("Notify", $"{user.UserName} connected to group {groupName}");
@@ -116,7 +117,7 @@ namespace uberChat
                 return;
             }
             var messages = Messages.Where(msg => msg.GroupName == user.CurrentGroup && id > msg.Id)
-                .TakeLast(10)
+                .TakeLast(MAX_LOAD_MESSAGE)
                 .ToList();
             messages.Reverse();
             await Clients.Caller.SendAsync("LoadMoreMessages", messages, messages.Count() > 0 ? messages.Min(msg => msg.Id) : 0);
