@@ -27,6 +27,8 @@
         </div>
         <div id="messages"></div>
         <div id="chatUsers"></div>
+        <input type="button" id="loadMore" value="Загрузить еще">
+
     </div>
     <br>
     <div id="inputForm">
@@ -41,10 +43,14 @@
     </div>
     <script src="js/signalr/dist/browser/signalr.js"></script>
     <script>
-        let chat1 = {};
+        let firstMessageId = 0;
         const hubConnection = new signalR.HubConnectionBuilder()
             .withUrl("/chat")
             .build();
+
+        function insertAfter(newNode, referenceNode) {
+            referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+        }
 
         function displayMessage(message, isHighlated = false, color = "black") {
             let elem = document.createElement("p");
@@ -57,7 +63,16 @@
             }
             elem.innerHTML = message;
             document.getElementById("messages").insertBefore(elem, firstChild);
+             
         }
+
+        function displayMessageAfter(message) {
+            let elem = document.createElement("p");
+            let lastChild = document.getElementById("messages").lastChild;
+            elem.innerHTML = message;
+            insertAfter(elem, lastChild);
+        }
+
         function clearChat() {
             document.getElementById("messages").innerHTML = "";
         }
@@ -113,35 +128,23 @@
             chat1 = userChat;
             loadChat(userChat);
         });
-        
-        hubConnection.on("LoadMessages", (messages) => {
+
+        hubConnection.on("LoadMessages", (messages, firstId) => {
             clearChat();
             messages.forEach(elem => {
                 displayMessage(`${elem.sender}: ${elem.content}`);
             });
+            firstMessageId = firstId;
         });
-
-        function loadChat(chat) {
-            document.getElementById("messages").innerHTML = "";
-            document.getElementById("chatName").innerHTML = chat.name;
-            chat.messages.forEach(element => {
-                let msgs = document.getElementById("messages").firstChild;
-                let elem = document.createElement("p");
-                elem.innerHTML += element.sender + ": " + element.content;
-                document.getElementById("messages").insertBefore(elem, msgs);
+        hubConnection.on("LoadMoreMessages", (messages, firstId) => {
+            messages.forEach(elem => {
+                displayMessageAfter(`${elem.sender}: ${elem.content}`);
             });
-
-            document.getElementById("chatUsers").innerHTML = "";
-            chat.connectedUsers.forEach(element => {
-                let usrs = document.getElementById("chatUsers").firstChild;
-                let elem = document.createElement("p");
-                elem.innerHTML += element.userName;
-                document.getElementById("chatUsers").insertBefore(elem, usrs);
-            });
-
-        }
-        hubConnection.on("closed", () => { console.log("dskjflkdsajflkj"); debugger; }
-        );
+            firstMessageId = firstId;
+        });
+        document.getElementById("loadMore").addEventListener("click", (e) => {
+            hubConnection.invoke("LoadMore", firstMessageId);
+        });
 
         hubConnection.start();
     </script>

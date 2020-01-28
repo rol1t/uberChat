@@ -15,11 +15,23 @@ namespace uberChat
         public async Task SendMessage(string message)
         {
             var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
+            if (!Messages.Any(msg => msg.GroupName == user.CurrentGroup))
+            {
+                Messages.Add(new Message
+                {
+                    Content = $"chat start here ({user.CurrentGroup})!",
+                    GroupName = user.CurrentGroup,
+                    Sender = "server",
+                    Id = 0
+                });
+
+            }
             Messages.Add(new Message
             {
                 GroupName = user.CurrentGroup,
                 Sender = user.UserName,
-                Content = message
+                Content = message,
+                Id = Messages.Where(msg => msg.GroupName == user.CurrentGroup).Max(msg => msg.Id) + 1
             });
             await Clients.Group(user.CurrentGroup).SendAsync("ReciveMessage", user.UserName, message);
         }
@@ -60,13 +72,24 @@ namespace uberChat
             }
             user.CurrentGroup = groupName;
             await Groups.AddToGroupAsync(user.Id, groupName);
-            await Clients.Caller.SendAsync("LoadMessages", Messages.Where(msg => msg.GroupName == groupName).ToList());
+            var messages = Messages.Where(msg => msg.GroupName == groupName).TakeLast(10).ToList();
+            await Clients.Caller.SendAsync("LoadMessages", messages, (messages.Count() > 0 ? messages.Min(msg => msg.Id): 0));
             await Clients.Groups(groupName).SendAsync("Notify", $"{user.UserName} connected to group {groupName}");
         }
 
-        public async Task LoadChat(int page)
+        //load more message. start on id
+        public async Task LoadMore(int id)
         {
-
+            var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
+            if (user == null)
+            {
+                return;
+            }
+            var messages = Messages.Where(msg => msg.GroupName == user.CurrentGroup && id > msg.Id)
+                .TakeLast(10)
+                .ToList();
+            messages.Reverse();
+            await Clients.Caller.SendAsync("LoadMoreMessages", messages, messages.Count() > 0 ? messages.Min(msg => msg.Id) : 0);
         }
 
         public async Task SendPrivateMessage(string reciver, string message)
