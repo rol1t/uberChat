@@ -58,6 +58,9 @@
             elem.innerHTML = message;
             document.getElementById("messages").insertBefore(elem, firstChild);
         }
+        function clearChat() {
+            document.getElementById("messages").innerHTML = "";
+        }
 
         document.getElementById("selectGroupBtn").addEventListener("click", (e) => {
             hubConnection.invoke("ConnectToGroup", document.getElementById("groupNameBox").value);
@@ -109,6 +112,13 @@
         hubConnection.on("UpdateChat", (userChat) => {
             chat1 = userChat;
             loadChat(userChat);
+        });
+        
+        hubConnection.on("LoadMessages", (messages) => {
+            clearChat();
+            messages.forEach(elem => {
+                displayMessage(`${elem.sender}: ${elem.content}`);
+            });
         });
 
         function loadChat(chat) {

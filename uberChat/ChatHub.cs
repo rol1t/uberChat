@@ -11,10 +11,16 @@ namespace uberChat
     public class ChatHub: Hub
     {
         static public List<User> OnlineUsers { get; set; } = new List<User>();
-
+        static public List<Message> Messages { get; set; } = new List<Message>();
         public async Task SendMessage(string message)
         {
             var user = OnlineUsers.FirstOrDefault(usr => usr.Id == Context.ConnectionId);
+            Messages.Add(new Message
+            {
+                GroupName = user.CurrentGroup,
+                Sender = user.UserName,
+                Content = message
+            });
             await Clients.Group(user.CurrentGroup).SendAsync("ReciveMessage", user.UserName, message);
         }
 
@@ -31,10 +37,7 @@ namespace uberChat
                 OnlineUsers.Add(newUser);
                 await Clients.All.SendAsync("UserConnected", GetOnlineUsers());
             }
-            await Groups.AddToGroupAsync(Context.ConnectionId, "global");
-            newUser.CurrentGroup = "global";
-            var group = Clients.Group("global");
-            await group.SendAsync("Notify", $"{newUser.UserName} connected to group global");
+            await ConnectToGroup("global");
         }
 
         private string GetOnlineUsers()
@@ -57,7 +60,13 @@ namespace uberChat
             }
             user.CurrentGroup = groupName;
             await Groups.AddToGroupAsync(user.Id, groupName);
+            await Clients.Caller.SendAsync("LoadMessages", Messages.Where(msg => msg.GroupName == groupName).ToList());
             await Clients.Groups(groupName).SendAsync("Notify", $"{user.UserName} connected to group {groupName}");
+        }
+
+        public async Task LoadChat(int page)
+        {
+
         }
 
         public async Task SendPrivateMessage(string reciver, string message)

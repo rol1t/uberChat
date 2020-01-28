@@ -9,9 +9,6 @@ namespace uberChat.Models
         [Required(AllowEmptyStrings = true)]
         public string GroupName { get; set; }
 
-        [Required(AllowEmptyStrings = true)]
-        public string ReciverId { get; set; }
-
         public string Sender { get; set; }
         public string Content { get; set; }
     }
